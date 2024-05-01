@@ -21,6 +21,8 @@ express.io = class {
 
 express.request = function (app) {
 	return function (request, response, next) {
+		request.cross = {origin: false}
+		request.client = {id: ""}
 		request.parse_url = express.plugin.parse_url (app, request);
 		request.visitor = express.plugin.visitor (app, request);
 		next ();
@@ -38,20 +40,21 @@ express.response = function () {
 express.js = require ("express");
 express.json = function (json) { return "./" + json; }
 express.plugin = function () {}
+
 express.cross = function () {}
-express.cross.origin = function () { return express.cross.origin.policy (); }
+express.cross.origin = function () { return express.cross.origin.context (); }
+express.cross.origin.context = require ("cors");
 express.cross.origin.access = function (app) {
 	return function (request, response, next) {
-		if (request.visitor.client) {
+		if (request.cross.origin) {
 			var co = app ["package.json"].cross.origin;
 			if (co === "*") next ();
-			else if (co.includes (request.visitor.url.host.name)) next ();
+			else if (co.includes (request.client.host.name)) next ();
 			else response.error.co ();
 			}
 		else next ();
 		}
 	}
-express.cross.origin.policy = require ("cors");
 express.context = function (context) { return context || function () {} }
 express.url = function () {}
 express.url.get = function (url, option = {}) { return new express.url.c (url, {method: "get", ... option}); }
