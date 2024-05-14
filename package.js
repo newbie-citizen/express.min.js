@@ -32,7 +32,7 @@ var lib = require ("lib.min.js");
 express.app = class {
 	constructor () {
 		this.$app = express.io ();
-		this.client = new express.app.client (this);
+		this.io = new express.app.io (this);
 		}
 	use (... context) { this.$app.use (... context); return this; }
 	set (... data) { this.$app.set (... data); return this; }
@@ -62,7 +62,7 @@ express.app = class {
 		}
 	}
 
-express.app.client = class {
+express.app.io = class {
 	constructor (express) {
 		this.$app = (this.express = express).$app;
 		}
@@ -73,13 +73,13 @@ express.app.client = class {
 		}
 	get (path, context) {
 		this.$app.get (express.path (path), function (request, response, next) {
-			if (request.io.cross.origin) context (request.io, response.io, next);
+			if (request.io ["cross-origin"]) context (request.io, response.io, next);
 			else response.io.error ("cross-origin");
 			});
 		}
 	post (path, context) {
 		this.$app.post (express.path (path), function (request, response, next) {
-			if (request.io.cross.origin) context (request.io, response.io, next);
+			if (request.io ["cross-origin"]) context (request.io, response.io, next);
 			else response.io.error ("cross-origin");
 			});
 		}
@@ -117,11 +117,11 @@ express.request.io = class {
 		var url = host + this.express.request.url;
 		this.url = lib.parse_url (url, {
 			protocol: this.header ["x-forwarded-proto"],
-			client: this.header ["origin"],
+			"cross-origin": this.header ["origin"],
 			});
 		this.path = this.url.path;
-		this.cross = {origin: this.url.cross.origin}
-		this.client = {id: "", ip: "", ... this.url.client}
+		this ["cross-origin"] = this.url ["cross-origin"];
+		this.cross = {origin: {id: "", ip: "", ... this.url.cross.origin}}
 		}
 	query (key) {
 		if (key) return this.express.request.query (key);
@@ -160,6 +160,10 @@ express.response.io = class {
 	__construct () {
 		//
 		}
+	header (key, value) {
+		this.express.response.setHeader (key, value);
+		return this;
+		}
 	status (status) {
 		if (status === "error:found") status = 404;
 		if (status === "error:forbidden") status = 403;
@@ -182,6 +186,7 @@ express.response.io = class {
 			}.bind ({express: this.express}));
 		}
 	error (error) {
+		if (error === "found") this.express.response.status (404).send ("Error (404) Not Found : App");
 		if (error === "cross-origin") this.express.response.status (403).send ("Error (403) Forbidden : Cross Origin");
 		}
 	}
@@ -215,25 +220,28 @@ express.path.data = {
  */
 
 express.cross = function () {}
-express.cross.origin = function (app) { return express.cross.origin.api (); }
-express.cross.origin.api = require ("cors");
+express.cross.origin = function (app) { return express.cross.origin.api.engine (); }
+express.cross.origin.api = {engine: require ("cors")}
 express.cross.origin.access = function (app) {
 	return function (request, response, next) {
-		if (request.io.cross.origin) {
-			var co = app ["package.json"].cross.origin;
-			if (co === "*") next ();
-			else if (co.includes (request.io.client.base.name)) next ();
-			else response.io.error ("cross-origin");
+		if (request ["cross-origin"]) {
+			if (request.cross.origin.ip = request.header ["x-cross-origin-ip"]) {
+				var cross = {origin: app ["package.json"].cross.origin}
+				var co = app ["package.json"].cross.origin;
+				if (cross.origin === "*") next ();
+				else if (cross.origin.includes (request.cross.origin.base.name)) next ();
+				else response.error ("cross-origin");
+				}
 			}
 		else next ();
 		}
 	}
 express.cross.origin.header = function (app) {
 	return function (request, response, next) {
-		response.setHeader ("Access-Control-Allow-Origin", "*");
-		response.setHeader ("Access-Control-Allow-Credentials", true);
-		response.setHeader ("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
-		response.setHeader ("Access-Control-Allow-Headers", "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, X-Client-IP");
+		response.header ("Access-Control-Allow-Origin", "*");
+		response.header ("Access-Control-Allow-Credentials", true);
+		response.header ("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
+		response.header ("Access-Control-Allow-Headers", "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, X-Cross-Origin-IP");
 		next ();
 		}
 	}
@@ -248,6 +256,7 @@ express.cross.origin.header = function (app) {
  * xxx://xxx.xxx.xxx/xxx
  */
 
+/*
 express.client = function () {}
 express.client.port = 8000;
 express.client.header = function (app) {
@@ -256,6 +265,7 @@ express.client.header = function (app) {
 		next ();
 		}
 	}
+*/
 
 /**
  * xxx
@@ -269,7 +279,7 @@ express.client.header = function (app) {
 
 express.visitor = function (app) {
 	return function (request, response, next) {
-		var ip = request.header ["x-client-ip"] || request.header ["cf-connecting-ip"] || request.header ["x-forwarded-for"] || request.header ["x-real-ip"];
+		var ip = request.header ["x-cross-origin-ip"] || request.header ["cf-connecting-ip"] || request.header ["x-forwarded-for"] || request.header ["x-real-ip"];
 		var option = {
 			country_code: request.header ["cf-ipcountry"] || request.header ["x-vercel-ip-country"],
 			region_code: request.header ["x-vercel-ip-country-region"],
