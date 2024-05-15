@@ -122,6 +122,8 @@ express.request.io = class {
 		this.path = this.url.path;
 		this ["cross-origin"] = this.url ["cross-origin"];
 		this.cross = {origin: {id: "", ip: "", ... this.url.cross.origin}}
+		this.date = new lib.date.time ();
+		this.date.timezone ("UTC");
 		}
 	query (key) {
 		if (key) return this.express.request.query (key);
@@ -224,10 +226,10 @@ express.cross.origin = function (app) { return express.cross.origin.api.engine (
 express.cross.origin.api = {engine: require ("cors")}
 express.cross.origin.access = function (app) {
 	return function (request, response, next) {
+		if (request.url.host.address === app ["client.json"]["rest-api"]) request.rest_api = true;
 		if (request ["cross-origin"]) {
 			if (request.cross.origin.ip = request.header ["x-cross-origin-ip"]) {
 				var cross = {origin: app ["package.json"].cross.origin}
-				var co = app ["package.json"].cross.origin;
 				if (cross.origin === "*") next ();
 				else if (cross.origin.includes (request.cross.origin.base.name)) next ();
 				else response.error ("cross-origin");
