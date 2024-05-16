@@ -14,8 +14,12 @@ function express () {
 
 express.io = require ("express");
 express.body = {parser: require ("body-parser")}
-express.static = express.io.static;
 express.port = 3000;
+
+express.static = function (app) {
+	for (var i in app ["package.json"].static) app.use (i, express.io.static (app ["package.json"].static [i]));
+	app.html (app.dir.public);
+	}
 
 var lib = require ("lib.min.js");
 
@@ -42,19 +46,19 @@ express.app = class {
 	html (dir) {
 		this.$app.engine ("html", function (fp, param, context) {
 			lib.fs.api.engine.readFile (fp, function (error, content) {
-				if (error) context (error);
+				if (error) return context (error);
 				var data = content.toString ();
 				data = data.to_replace (param, {exclude: ["_locals", "settings", "cache"]});
 				return context (null, data);
 				});
 			});
+		this.$app.set ("trust proxy", true);
 		this.$app.set ("views", dir);
 		this.$app.set ("view engine", "html");
 		this.$app.use (function (request, response, next) {
 			response.public_html = dir;
 			next ();
 			});
-		return this;
 		}
 	export ($) {
 		$.exports = this.$app;
@@ -155,12 +159,11 @@ express.response.io = class {
 	constructor (app, request, response, next) {
 		this.app = app;
 		this.express = {request, response}
-		this.request = request.io;
 		this.next = next;
 		this.__construct ();
 		}
 	__construct () {
-		//
+		this.parameter = {}
 		}
 	header (key, value) {
 		this.express.response.setHeader (key, value);
@@ -177,8 +180,11 @@ express.response.io = class {
 		return this;
 		}
 	html (template, param) {
-		if (arguments.length > 1) this.express.response.render (template, param);
-		else this.express.response.render ("index", template);
+		if (arguments.length > 1) this.express.response.render (template, {... this.parameter, ... param});
+		else this.express.response.render ("index", {... this.parameter, ... template});
+		}
+	render (... render) {
+		this.express.response.render (... render);
 		}
 	file (file, option, context) {
 		if (file.startsWith ("/")) file = file.substr (1);
@@ -188,8 +194,13 @@ express.response.io = class {
 			}.bind ({express: this.express}));
 		}
 	error (error) {
-		if (error === "found") this.express.response.status (404).send ("Error (404) Not Found : App");
-		if (error === "cross-origin") this.express.response.status (403).send ("Error (403) Forbidden : Cross Origin");
+		if (error === "found") return this.express.response.status (404).send ("Error (404) Not Found : App");
+		if (error === "cross-origin") return this.express.response.status (403).send ("Error (403) Forbidden : Cross Origin");
+		}
+	param (key, value) {
+		if (value) this.parameter [key] = value;
+		else for (var i in key) this.parameter [i] = key [i];
+		return this;
 		}
 	}
 
@@ -208,7 +219,9 @@ express.path = function (path) {
 	}
 
 express.path.data = {
-	"favorite.ico": "/favicon.ico",
+	"favorite:icon": "/favicon.ico",
+	"favorite.ico": "/favorite.ico",
+	"manifest.json": "/manifest.json",
 	}
 
 /**
@@ -226,6 +239,7 @@ express.cross.origin = function (app) { return express.cross.origin.api.engine (
 express.cross.origin.api = {engine: require ("cors")}
 express.cross.origin.access = function (app) {
 	return function (request, response, next) {
+		request ["rest-api"] = (request.header ["x-api-rest"] === "self");
 		if (request.url.host.address === app ["client.json"]["rest-api"]) request.rest_api = true;
 		if (request ["cross-origin"]) {
 			if (request.cross.origin.ip = request.header ["x-cross-origin-ip"]) {
