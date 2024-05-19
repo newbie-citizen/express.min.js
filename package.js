@@ -77,13 +77,13 @@ express.app.io = class {
 		}
 	get (path, context) {
 		this.$app.get (express.path (path), function (request, response, next) {
-			if (request.io ["cross-origin"]) context (request.io, response.io, next);
+			if (request.io ["cross-origin"] || request.io ["rest-api"]) context (request.io, response.io, next);
 			else response.io.error ("cross-origin");
 			});
 		}
 	post (path, context) {
 		this.$app.post (express.path (path), function (request, response, next) {
-			if (request.io ["cross-origin"]) context (request.io, response.io, next);
+			if (request.io ["cross-origin"] || request.io ["rest-api"]) context (request.io, response.io, next);
 			else response.io.error ("cross-origin");
 			});
 		}
@@ -215,17 +215,24 @@ express.response.io = class {
  */
 
 express.path = function (path) {
-	return express.path.data [path] || path;
+	return express.path.data [path] || express.path.base (path);
+	}
+
+express.path.base = function (path) {
+	if (path.substr (0, 1) === "/") return path;
+	else return "/" + path;
 	}
 
 express.path.data = {
 	"favorite:icon": "/favicon.ico",
 	"favorite.ico": "/favorite.ico",
 	"manifest.json": "/manifest.json",
+	"cgi-bin:file": "/cgi-bin/file/:file",
+	"cgi-bin:client": "/cgi-bin/client",
 	}
 
 /**
- * xxx
+ * cross origin
  *
  * title
  * description
@@ -239,7 +246,7 @@ express.cross.origin = function (app) { return express.cross.origin.api.engine (
 express.cross.origin.api = {engine: require ("cors")}
 express.cross.origin.access = function (app) {
 	return function (request, response, next) {
-		request ["rest-api"] = (request.header ["x-api-rest"] === "self");
+		request ["rest-api"] = (request.header ["x-rest-api"] === "self");
 		if (request.url.host.address === app ["client.json"]["rest-api"]) request.rest_api = true;
 		if (request ["cross-origin"]) {
 			if (request.cross.origin.ip = request.header ["x-cross-origin-ip"]) {
@@ -252,6 +259,7 @@ express.cross.origin.access = function (app) {
 		else next ();
 		}
 	}
+
 express.cross.origin.header = function (app) {
 	return function (request, response, next) {
 		response.header ("Access-Control-Allow-Origin", "*");
@@ -263,7 +271,7 @@ express.cross.origin.header = function (app) {
 	}
 
 /**
- * xxx
+ * client
  *
  * title
  * description
@@ -272,16 +280,57 @@ express.cross.origin.header = function (app) {
  * xxx://xxx.xxx.xxx/xxx
  */
 
-/*
-express.client = function () {}
-express.client.port = 8000;
-express.client.header = function (app) {
+express.client = function (app) {
 	return function (request, response, next) {
-		request.client.ip = request.header ["x-client-ip"];
+		var client;
+		if (request ["cross-origin"]) client = request.cross.origin.base.name;
+		else client = request.url.base.name;
+		for (var i in app ["client.json"].data) {
+			if (lib.help.host.check (client, i)) {
+				if (request.client = {identifier: client, ... app ["client.json"].data [i]}) {
+					break;
+					}
+				}
+			}
+		if (request.client) {
+			if (request.client.api.driver === "file:system") {
+				var api = request.client.api.data ["file:system"];
+				var directory = [app.dir.client, (api.directory || request.url.base.name), "db"].join (lib.path.separator ());
+				request.api = new lib.json.file ({directory});
+				request.api.db.table = api.db.collection;
+				}
+			if (request.client.api.driver === "firebase") {
+				var api = request.client.api.data.firebase;
+				request.api = new lib.api.firebase (api);
+				}
+			if (request.client.api.driver === "appwrite") {
+				var api = request.client.api.data.appwrite;
+				request.api = new lib.api.appwrite ({url: api.url, socket: api.socket, project: api.project, db: api.db.id});
+				request.api.db.table = api.db.collection;
+				}
+			next ();
+			}
+		else response.error ("found");
+		}
+	}
+
+express.client.param = function (app) {
+	return function (request, response, next) {
+		response.param ({
+			"title": "UnTitled",
+			"head:rest-api": request.url.protocol + "://" + app ["client.json"]["rest-api"],
+			"head:language": "en",
+			"head:author": "Newbie Citizen",
+			"head:description": "Just another Web-Site/App",
+			"head:generator": "Newbizen Studio",
+			"head:keyword": "",
+			"head:robot": "index, follow",
+			"head:canonical": "",
+			"head:manifest": express.path.data ["manifest.json"],
+			});
 		next ();
 		}
 	}
-*/
 
 /**
  * xxx
