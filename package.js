@@ -194,8 +194,9 @@ express.response.io = class {
 			}.bind ({express: this.express}));
 		}
 	error (error) {
-		if (error === "found") return this.express.response.status (404).send ("Error (404) Not Found : App");
-		if (error === "cross-origin") return this.express.response.status (403).send ("Error (403) Forbidden : Cross Origin");
+		if (error === "cross-origin") return this.status ("error:forbidden").send ("Error (403) Forbidden : Cross Origin");
+		if (error === "app") return this.status ("error:found").send ("Error (404) Not Found : App");
+		if (error === "router") return this.status ("error:found").send ("Error (404) Not Found : Router");
 		}
 	param (key, value) {
 		if (value) this.parameter [key] = value;
@@ -224,11 +225,13 @@ express.path.base = function (path) {
 	}
 
 express.path.data = {
+	"cgi-bin:info": "/cgi-bin/info",
+	"cgi-bin:client": "/cgi-bin/client",
+	"cgi-bin:file": "/cgi-bin/file/:file",
+	"manifest.json": "/manifest.json",
+	"sitemap.xml": "/sitemap.xml",
 	"favorite:icon": "/favicon.ico",
 	"favorite.ico": "/favorite.ico",
-	"manifest.json": "/manifest.json",
-	"cgi-bin:file": "/cgi-bin/file/:file",
-	"cgi-bin:client": "/cgi-bin/client",
 	}
 
 /**
@@ -310,7 +313,7 @@ express.client = function (app) {
 				}
 			next ();
 			}
-		else response.error ("found");
+		else response.error ("app");
 		}
 	}
 
