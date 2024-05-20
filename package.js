@@ -227,6 +227,7 @@ express.path.base = function (path) {
 express.path.data = {
 	"cgi-bin:info": "/cgi-bin/info",
 	"cgi-bin:client": "/cgi-bin/client",
+	"cgi-bin:db": "/cgi-bin/db/:collection",
 	"cgi-bin:file": "/cgi-bin/file/:file",
 	"manifest.json": "/manifest.json",
 	"sitemap.xml": "/sitemap.xml",
@@ -288,28 +289,34 @@ express.client = function (app) {
 		var client;
 		if (request ["cross-origin"]) client = request.cross.origin.base.name;
 		else client = request.url.base.name;
-		for (var i in app ["client.json"].data) {
+		for (var i in app ["client.json"].host) {
 			if (lib.help.host.check (client, i)) {
-				if (request.client = {identifier: client, ... app ["client.json"].data [i]}) {
+				if (request.client = {identifier: client, ... app ["client.json"].host [i]}) {
 					break;
 					}
 				}
 			}
 		if (request.client) {
-			if (request.client.api.driver === "file:system") {
-				var api = request.client.api.data ["file:system"];
-				var directory = [app.dir.client, (api.directory || request.url.base.name), "db"].join (lib.path.separator ());
+			if (request.client.api.gateway.driver === "file:system") {
+				var config = request.client.api.config [request.client.api.gateway.adapter || request.client.api.gateway.driver];
+				var directory = [app.dir.client, (config.directory || request.url.base.name), "db"].join (lib.path.separator ());
 				request.api = new lib.json.file ({directory});
-				request.api.db.table = api.db.collection;
+				request.api.db.table = config.db.collection;
 				}
-			if (request.client.api.driver === "firebase") {
-				var api = request.client.api.data.firebase;
-				request.api = new lib.api.firebase (api);
+			if (request.client.api.gateway.driver === "firebase") {
+				var config = request.client.api.config [request.client.api.gateway.adapter || request.client.api.gateway.driver];
+				request.api = new lib.api.firebase ({... config});
+				request.api.db.table = config.db.collection;
 				}
-			if (request.client.api.driver === "appwrite") {
-				var api = request.client.api.data.appwrite;
-				request.api = new lib.api.appwrite ({url: api.url, socket: api.socket, project: api.project, db: api.db.id});
-				request.api.db.table = api.db.collection;
+			if (request.client.api.gateway.driver === "appwrite") {
+				var config = request.client.api.config [request.client.api.gateway.adapter || request.client.api.gateway.driver];
+				request.api = new lib.api.appwrite ({url: config.url, socket: config.socket, project: config.project, db: config.db.id});
+				request.api.db.table = config.db.collection;
+				}
+			if (request.client.api ["j:son"]) {
+				var config = request.client.api.config ["j:son"];
+				request.json = new lib.json.bin ({url: config.url});
+				request.json.db.table = config.db.collection;
 				}
 			next ();
 			}
