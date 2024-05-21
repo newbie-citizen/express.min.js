@@ -180,7 +180,7 @@ express.response.io = class {
 		return this;
 		}
 	html (template, param) {
-		if (arguments.length > 1) this.express.response.render (template, {... this.parameter, ... param});
+		if (typeof template === "string") this.express.response.render (template, {... this.parameter, ... param});
 		else this.express.response.render ("index", {... this.parameter, ... template});
 		}
 	render (... render) {
