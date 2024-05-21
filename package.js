@@ -225,14 +225,16 @@ express.path.base = function (path) {
 	}
 
 express.path.data = {
+	"cgi-bin": "/cgi-bin",
 	"cgi-bin:info": "/cgi-bin/info",
-	"cgi-bin:client": "/cgi-bin/client",
-	"cgi-bin:db": "/cgi-bin/db/:collection",
+	"cgi-bin:db-collection": "/cgi-bin/db/:collection",
+	"cgi-bin:db.json": "/cgi-bin/db.json",
 	"cgi-bin:file": "/cgi-bin/file/:file",
+	"cgi-bin:error": "/cgi-bin/error.html",
 	"manifest.json": "/manifest.json",
 	"sitemap.xml": "/sitemap.xml",
-	"favorite:icon": "/favicon.ico",
 	"favorite.ico": "/favorite.ico",
+	"favorite:icon": "/favicon.ico",
 	}
 
 /**
@@ -292,6 +294,7 @@ express.client = function (app) {
 		for (var i in app ["client.json"].host) {
 			if (lib.help.host.check (client, i)) {
 				if (request.client = {identifier: client, ... app ["client.json"].host [i]}) {
+					request.client.api.url = {path: express.path.data}
 					break;
 					}
 				}
@@ -318,6 +321,7 @@ express.client = function (app) {
 				request.json = new lib.json.bin ({url: config.url});
 				request.json.db.table = config.db.collection;
 				}
+			request.client.api.router = {regex: request.api.db.collection ("router").extra ().regex}
 			next ();
 			}
 		else response.error ("app");
