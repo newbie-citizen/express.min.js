@@ -321,8 +321,16 @@ express.client = function (app) {
 				request.json = new lib.json.bin ({url: config.url});
 				request.json.db.table = config.db.collection;
 				}
-			request.client.api.router = {regex: request.api.db.collection ("router").extra ().regex}
-			next ();
+			request.api.db.collection ("config").select ().emit (function (db) {
+				var router_link = {}
+				for (var i in db.data) {
+					if (db.data [i].key.startsWith ("router:")) router_link [db.data [i].key.substr ("router:".length)] = db.data [i].value;
+					if (db.data [i].key.startsWith ("router-link:")) router_link [db.data [i].key.substr ("router-link:".length)] = db.data [i].value;
+					}
+				request.client.api.router = {link: router_link}
+				next ();
+				})
+			if (null) next ();
 			}
 		else response.error ("app");
 		}
