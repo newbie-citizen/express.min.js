@@ -138,6 +138,13 @@ express.request.io = class {
 		}
 	}
 
+express.request ["cgi-bin:db-collection"] = function (request) {
+	var collection = request.client.api.config [request.client.api.gateway.driver].db.collection;
+	var data = [];
+	for (var i in collection) data.push (express.path.data ["cgi-bin:db-collection"].to_param ({collection: i}));
+	return data.includes (request.path);
+	}
+
 /**
  * xxx
  *
@@ -196,6 +203,7 @@ express.response.io = class {
 	error (error) {
 		if (error === "cross-origin") return this.status ("error:forbidden").send ("Error (403) Forbidden : Cross Origin");
 		if (error === "app") return this.status ("error:found").send ("Error (404) Not Found : App");
+		if (error === "host") return this.status ("error:found").send ("Error (404) Not Found : Host");
 		if (error === "router") return this.status ("error:found").send ("Error (404) Not Found : Router");
 		}
 	param (key, value) {
@@ -332,7 +340,7 @@ express.client = function (app) {
 				})
 			if (null) next ();
 			}
-		else response.error ("app");
+		else response.error ("host");
 		}
 	}
 
