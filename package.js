@@ -45,7 +45,7 @@ express.app = class {
 	listen (host, port, context) { this.$app.listen (port, host, context); return this; }
 	html (dir) {
 		this.$app.engine ("html", function (fp, param, context) {
-			lib.fs.api.engine.readFile (fp, function (error, content) {
+			Function.fs.api.engine.readFile (fp, function (error, content) {
 				if (error) return context (error);
 				var data = content.toString ();
 				data = data.to_replace (param, {exclude: ["_locals", "settings", "cache"]});
@@ -119,14 +119,14 @@ express.request.io = class {
 	__construct () {
 		var host = (this.header = this.express.request.headers) ["host"] || this.express.request.hostname;
 		var url = host + this.express.request.url;
-		this.url = lib.parse_url (url, {
+		this.url = URL.parse_url (url, {
 			protocol: this.header ["x-forwarded-proto"],
 			"cross-origin": this.header ["origin"],
 			});
 		this.path = this.url.path;
 		this ["cross-origin"] = this.url ["cross-origin"];
 		this.cross = {origin: {id: "", ip: "", ... this.url.cross.origin}}
-		this.date = new lib.date.time ();
+		this.date = new Date.time ();
 		this.date.timezone ("UTC");
 		}
 	query (key) {
@@ -172,16 +172,6 @@ express.response.io = class {
 	__construct () {
 		this.parameter = {}
 		}
-	header (key, value) {
-		this.express.response.setHeader (key, value);
-		return this;
-		}
-	status (status) {
-		if (status === "error:found") status = 404;
-		if (status === "error:forbidden") status = 403;
-		this.express.response.status (status);
-		return this;
-		}
 	send (... data) {
 		this.express.response.send (... data);
 		return this;
@@ -190,26 +180,66 @@ express.response.io = class {
 		if (typeof template === "string") this.express.response.render (template, {... this.parameter, ... param});
 		else this.express.response.render ("index", {... this.parameter, ... template});
 		}
+	json (data) {
+		this.express.response.json (data);
+		return this;
+		}
+	text (data) {
+		this.express.response.type ("text");
+		this.express.response.send (data);
+		return this;
+		}
+	xml (data) {
+		this.express.response.type ("xml");
+		this.express.response.send (data);
+		return this;
+		}
 	render (... render) {
 		this.express.response.render (... render);
+		return this;
 		}
 	file (file, option, context) {
 		if (file.startsWith ("/")) file = file.substr (1);
 		this.express.response.sendFile (file, {root: this.express.response.public_html, ... option}, function (error) {
-			if (error) this.express.response.status (404).send ("Error (404) Not Found : File");
+			if (error) this.express.response.status ("error:not-found").send ("Error (404) Not Found : File");
 			if (context) context (error);
 			}.bind ({express: this.express}));
+		return this;
 		}
 	error (error) {
-		if (error === "cross-origin") return this.status ("error:forbidden").send ("Error (403) Forbidden : Cross Origin");
-		if (error === "app") return this.status ("error:found").send ("Error (404) Not Found : App");
-		if (error === "host") return this.status ("error:found").send ("Error (404) Not Found : Host");
-		if (error === "router") return this.status ("error:found").send ("Error (404) Not Found : Router");
+		if (error === "cross-origin") this.status ("error:forbidden").send ("Error (403) Forbidden : Cross Origin");
+		else if (error === "app:not-found") this.status ("error:not-found").send ("Error (404) Not Found : App");
+		else if (error === "host:not-found") this.status ("error:not-found").send ("Error (404) Not Found : Host");
+		else if (error === "router:not-found") this.status ("error:not-found").send ("Error (404) Not Found : Router");
+		else this.status ("error:internal").send (error);
+		return this;
+		}
+	header (key, value) {
+		this.express.response.setHeader (key, value);
+		return this;
+		}
+	status (status) {
+		if (status === "error:not-found") status = 404;
+		if (status === "error:forbidden") status = 403;
+		if (status === "error:internal") status = 500;
+		this.express.response.status (status);
+		return this;
+		}
+	type (type) {
+		this.express.response.type (type);
+		return this;
 		}
 	param (key, value) {
 		if (value) this.parameter [key] = value;
 		else for (var i in key) this.parameter [i] = key [i];
 		return this;
+		}
+	manifest (data) {
+		this.json (Function.manifest (data));
+		return this;
+		}
+	robot (data) {
+		return this.text (Function.robot (data));
 		}
 	}
 
@@ -241,6 +271,7 @@ express.path.data = {
 	"cgi-bin:error": "/cgi-bin/error.html",
 	"manifest.json": "/manifest.json",
 	"sitemap.xml": "/sitemap.xml",
+	"robot.txt": "/robots.txt",
 	"favorite.ico": "/favorite.ico",
 	"favorite:icon": "/favicon.ico",
 	}
@@ -300,7 +331,7 @@ express.client = function (app) {
 		if (request ["cross-origin"]) client = request.cross.origin.base.name;
 		else client = request.url.base.name;
 		for (var i in app ["client.json"].host) {
-			if (lib.help.host.check (client, i)) {
+			if (Function.help.host.check (client, i)) {
 				if (request.client = {identifier: client, ... app ["client.json"].host [i]}) {
 					request.client.api.url = {path: express.path.data}
 					break;
@@ -310,23 +341,23 @@ express.client = function (app) {
 		if (request.client) {
 			if (request.client.api.gateway.driver === "file:system") {
 				var config = request.client.api.config [request.client.api.gateway.adapter || request.client.api.gateway.driver];
-				var directory = [app.dir.client, (config.directory || request.url.base.name), "db"].join (lib.path.separator ());
-				request.api = new lib.json.file ({directory});
+				var directory = [app.dir.client, (config.directory || request.url.base.name), "db"].join (Function.path.separator ());
+				request.api = new JSON.file ({directory});
 				request.api.db.table = config.db.collection;
 				}
 			if (request.client.api.gateway.driver === "firebase") {
 				var config = request.client.api.config [request.client.api.gateway.adapter || request.client.api.gateway.driver];
-				request.api = new lib.api.firebase ({... config});
+				request.api = new Function.api.firebase ({... config});
 				request.api.db.table = config.db.collection;
 				}
 			if (request.client.api.gateway.driver === "appwrite") {
 				var config = request.client.api.config [request.client.api.gateway.adapter || request.client.api.gateway.driver];
-				request.api = new lib.api.appwrite ({url: config.url, socket: config.socket, project: config.project, db: config.db.id});
+				request.api = new Function.api.appwrite ({url: config.url, socket: config.socket, project: config.project, db: config.db.id});
 				request.api.db.table = config.db.collection;
 				}
 			if (request.client.api ["j:son"]) {
 				var config = request.client.api.config ["j:son"];
-				request.json = new lib.json.bin ({url: config.url});
+				request.json = new JSON.bin ({url: config.url});
 				request.json.db.table = config.db.collection;
 				}
 			request.api.db.collection ("config").select ().emit (function (db) {
@@ -340,7 +371,7 @@ express.client = function (app) {
 				})
 			if (null) next ();
 			}
-		else response.error ("host");
+		else response.error ("host:not-found");
 		}
 	}
 
@@ -354,7 +385,7 @@ express.client.param = function (app) {
 			"head:description": "Just another Web-Site/App",
 			"head:generator": "Newbizen Studio",
 			"head:keyword": "",
-			"head:robot": "index, follow",
+			"head:robot": ["index", "follow"].join (),
 			"head:canonical": "",
 			"head:manifest": express.path.data ["manifest.json"],
 			});
@@ -383,7 +414,7 @@ express.visitor = function (app) {
 			latitude: request.header ["x-vercel-ip-latitude"],
 			longitude: request.header ["x-vercel-ip-longitude"],
 			}
-		request.visitor = lib.ip.parse (ip, option);
+		request.visitor = Function.ip.parse (ip, option);
 		next ();
 		}
 	}
