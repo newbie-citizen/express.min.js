@@ -219,8 +219,8 @@ express.response.io = class {
 		return this;
 		}
 	status (status) {
-		if (status === "error:not-found") status = 404;
 		if (status === "error:forbidden") status = 403;
+		if (status === "error:not-found") status = 404;
 		if (status === "error:internal") status = 500;
 		this.express.response.status (status);
 		return this;
@@ -244,7 +244,7 @@ express.response.io = class {
 	}
 
 /**
- * xxx
+ * path
  *
  * title
  * description
@@ -268,12 +268,16 @@ express.path.data = {
 	"cgi-bin:db-collection": "/cgi-bin/db/:collection",
 	"cgi-bin:db.json": "/cgi-bin/db.json",
 	"cgi-bin:file": "/cgi-bin/file/:file",
+	"cgi-bin:security-challenge": "/cgi-bin/security/challenge",
 	"cgi-bin:error": "/cgi-bin/error.html",
+	"favorite.ico": "/favorite.ico",
+	"favorite:icon": "/favicon.ico",
 	"manifest.json": "/manifest.json",
 	"sitemap.xml": "/sitemap.xml",
 	"robot.txt": "/robots.txt",
-	"favorite.ico": "/favorite.ico",
-	"favorite:icon": "/favicon.ico",
+	"open-search.xml": "/opensearch.xml",
+	"open-search.xml:description": "/osd.xml",
+	"feed": "/feed",
 	}
 
 /**
@@ -331,6 +335,25 @@ express.client = function (app) {
 		if (request ["cross-origin"]) client = request.cross.origin.base.name;
 		else client = request.url.base.name;
 		for (var i in app ["client.json"].host) {
+			var host = app ["client.json"].host [i];
+			var identifier = host.identifier;
+			if (Array.isArray (identifier)) for (var x in identifier) {
+				var name = identifier [x];
+				if (Function.help.host.check (client, name)) {
+					if (request.client = {identifier: client, ... host}) {
+						request.client.api.url = {path: express.path.data}
+						break;
+						}
+					}
+				}
+			else if (Function.help.host.check (client, identifier)) {
+				if (request.client = {identifier: client, ... host}) {
+					request.client.api.url = {path: express.path.data}
+					break;
+					}
+				}
+			}
+		if (null) for (var i in app ["client.json"].host) {
 			if (Function.help.host.check (client, i)) {
 				if (request.client = {identifier: client, ... app ["client.json"].host [i]}) {
 					request.client.api.url = {path: express.path.data}
@@ -361,12 +384,12 @@ express.client = function (app) {
 				request.json.db.table = config.db.collection;
 				}
 			request.api.db.collection ("config").select ().emit (function (db) {
-				var router_link = {}
+				var router_regex = {}
 				for (var i in db.data) {
-					if (db.data [i].key.startsWith ("router:")) router_link [db.data [i].key.substr ("router:".length)] = db.data [i].value;
-					if (db.data [i].key.startsWith ("router-link:")) router_link [db.data [i].key.substr ("router-link:".length)] = db.data [i].value;
+					if (db.data [i].key.startsWith ("router:")) router_regex [db.data [i].key.substr ("router:".length)] = db.data [i].value;
+					if (db.data [i].key.startsWith ("router-link:")) router_regex [db.data [i].key.substr ("router-link:".length)] = db.data [i].value;
 					}
-				request.client.api.router = {link: router_link}
+				request.client.api.router = {regex: router_regex}
 				next ();
 				})
 			if (null) next ();
@@ -385,7 +408,7 @@ express.client.param = function (app) {
 			"head:description": "Just another Web-Site/App",
 			"head:generator": "Newbizen Studio",
 			"head:keyword": "",
-			"head:robot": ["index", "follow"].join (),
+			"head:robot": ["index", "follow", "max-image-preview:large", "max-snippet:-1", "max-video-preview:-1"].join (),
 			"head:canonical": "",
 			"head:manifest": express.path.data ["manifest.json"],
 			});
