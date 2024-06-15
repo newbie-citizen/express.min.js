@@ -56,7 +56,7 @@ express.app = class {
 		this.$app.set ("views", dir);
 		this.$app.set ("view engine", "html");
 		this.$app.use (function (request, response, next) {
-			response.public_html = dir;
+			// response.public_html = dir;
 			next ();
 			});
 		}
@@ -128,9 +128,10 @@ express.request.io = class {
 		this.cross = {origin: {id: "", ip: "", ... this.url.cross.origin}}
 		this.date = new Date.time ();
 		this.date.timezone ("UTC");
+		this.router = {link: {data: []}}
 		}
 	query (key) {
-		if (key) return this.express.request.query (key);
+		if (key) return this.express.request.query [key];
 		else return this.url.query;
 		}
 	param (key) {
@@ -139,7 +140,7 @@ express.request.io = class {
 	}
 
 express.request ["cgi-bin:db-collection"] = function (request) {
-	var collection = request.client.api.config [request.client.api.gateway.driver].db.collection;
+	var collection = request.xxx.server.config.db.collection;
 	var data = [];
 	for (var i in collection) data.push (express.path.data ["cgi-bin:db-collection"].to_param ({collection: i}));
 	return data.includes (request.path);
@@ -171,6 +172,7 @@ express.response.io = class {
 		}
 	__construct () {
 		this.parameter = {}
+		// this.public_html = this.express.response.public_html;
 		}
 	send (... data) {
 		this.express.response.send (... data);
@@ -199,8 +201,14 @@ express.response.io = class {
 		return this;
 		}
 	file (file, option, context) {
+		option = option || {}
+		var root;
+		if (option.root === "package") root = this.app.dir.package;
+		else if (["public", "public_html"].includes (option.root)) root = this.app.dir.public;
+		else root = this.app.dir.public;
 		if (file.startsWith ("/")) file = file.substr (1);
-		this.express.response.sendFile (file, {root: this.express.response.public_html, ... option}, function (error) {
+		// this.express.response.sendFile (file, {root: this.express.response.public_html, ... option}, function (error) {
+		this.express.response.sendFile (file, {root, ... option}, function (error) {
 			if (error) this.express.response.status ("error:not-found").send ("Error (404) Not Found : File");
 			if (context) context (error);
 			}.bind ({express: this.express}));
@@ -258,26 +266,31 @@ express.path = function (path) {
 	}
 
 express.path.base = function (path) {
-	if (path.substr (0, 1) === "/") return path;
-	else return "/" + path;
+	if (path.startsWith ("/")) return path;
+	else return ("/") + path;
 	}
 
 express.path.data = {
 	"cgi-bin": "/cgi-bin",
 	"cgi-bin:info": "/cgi-bin/info",
+	"cgi-bin:setup": "/cgi-bin/setup",
 	"cgi-bin:db-collection": "/cgi-bin/db/:collection",
 	"cgi-bin:db.json": "/cgi-bin/db.json",
 	"cgi-bin:file": "/cgi-bin/file/:file",
 	"cgi-bin:security-challenge": "/cgi-bin/security/challenge",
 	"cgi-bin:error": "/cgi-bin/error.html",
-	"favorite.ico": "/favorite.ico",
 	"favorite:icon": "/favicon.ico",
+	"favorite.ico": "/favorite.ico",
+	"favorite.png:small": "/__asset/image/favorite/16x16.png",
+	"favorite.png:medium": "/__asset/image/favorite/64x64.png",
+	"favorite.png:extra-large": "/__asset/image/favorite/192x192.png",
+	"favorite.png:big": "/__asset/image/favorite/512x512.png",
 	"manifest.json": "/manifest.json",
 	"sitemap.xml": "/sitemap.xml",
+	"sitemap.xsl": "/sitemap.xsl",
 	"robot.txt": "/robots.txt",
 	"open-search.xml": "/opensearch.xml",
 	"open-search.xml:description": "/osd.xml",
-	"feed": "/feed",
 	}
 
 /**
@@ -329,11 +342,103 @@ express.cross.origin.header = function (app) {
  * xxx://xxx.xxx.xxx/xxx
  */
 
+express.base = function (app) {
+	return function (request, response, next) {
+		var base;
+		if (request ["cross-origin"]) base = request.cross.origin.base.name;
+		else base = request.url.base.name;
+		for (var i in app ["config.json"]["*"]) {
+			var the = app ["config.json"]["*"][i];
+			var identifier = the.identifier;
+			if (Array.isArray (identifier)) for (var x in identifier) {
+				var name = identifier [x];
+				if (Function.help.host.check (base, name)) {
+					if (request.xxx = {domain: base, api: {}, ... the}) {
+						request.xxx.url = {path: express.path.data}
+						request.xxx.server.config = app ["configuration.json"][request.xxx.server.driver][request.xxx.server.adapter];
+						request.xxx.client.config = app ["configuration.json"][request.xxx.client.driver][request.xxx.client.adapter];
+						request.xxx ["bin.json:config"] = app ["configuration.json"]["j:son"][request.xxx ["bin.json"]];
+						break;
+						}
+					}
+				}
+			}
+		if (request.xxx) {
+			if (request.xxx.server.driver === "file:system") {
+				var config = request.xxx.server.config;
+				var directory = [app.dir.package, (config.directory || request.xxx.id || request.url.base.name), "db"].join (Function.path.separator ());
+				request.api = new JSON.file ({directory});
+				request.api.db.table = config.db.collection;
+				}
+			if (request.xxx.server.driver === "firebase") {
+				var config = request.xxx.server.config;
+				request.api = new Function.firebase (config);
+				request.api.db.table = config.db.collection;
+				}
+			if (request.xxx.server.driver === "appwrite") {
+				var config = request.xxx.server.config;
+				request.api = new Function.appwrite ({url: config.url, socket: config.socket, project: config.project, db: config.db.id});
+				request.api.db.table = config.db.collection;
+				}
+			if (request.xxx ["bin.json"]) {
+				var config = request.xxx ["bin.json:config"];
+				request.json = new JSON.bin ({url: config.url});
+				request.json.db.table = config.db.collection;
+				}
+			request.api.db.collection ("config").select ().emit (function (db) {
+				var router = {}
+				for (var i in db.data) {
+					if (db.data [i].key.startsWith ("router:")) router [db.data [i].key.substr ("router:".length)] = db.data [i].value;
+					if (db.data [i].key.startsWith ("router-link:")) router [db.data [i].key.substr ("router-link:".length)] = db.data [i].value;
+					}
+				request.xxx.router = {regex: router}
+				next ();
+				});
+			if (null) next ();
+			}
+		else response.error ("host:not-found");
+		}
+	}
+
+express.base.param = function (app) {
+	return function (request, response, next) {
+		response.param ({
+			"title": "UnTitled",
+			"head:rest-api": URL.format (app ["config.json"]["rest-api"], {protocol: request.url.protocol}),
+			"head:language": "en",
+			"head:author": "Newbie Citizen",
+			"head:description": "Just another Web-Site/App Platform",
+			"head:generator": "Newbizen Studio",
+			"head:keyword": "",
+			"head:robot": ["index", "follow", ... express.base.param ["snippet:preview"]].join (),
+			"head:canonical": "",
+			"head:manifest": express.path.data ["manifest.json"],
+			});
+		next ();
+		}
+	}
+
+express.base.param ["snippet:preview"] = ["max-snippet:-1", "max-image-preview:large", "max-video-preview:-1"];
+
+/*
 express.client = function (app) {
 	return function (request, response, next) {
 		var client;
 		if (request ["cross-origin"]) client = request.cross.origin.base.name;
 		else client = request.url.base.name;
+		if (null) for (var i in app ["config.json"]["*"]) {
+			var host = app ["config.json"]["*"][i];
+			var identifier = host.identifier;
+			if (Array.isArray (identifier)) for (var x in identifier) {
+				var name = identifier [x];
+				if (Function.help.host.check (client, name)) {
+					if (request.client = {identifier: client, ... host}) {
+						request.client.api.url = {path: express.path.data}
+						break;
+						}
+					}
+				}
+			}
 		for (var i in app ["client.json"].host) {
 			var host = app ["client.json"].host [i];
 			var identifier = host.identifier;
@@ -391,7 +496,7 @@ express.client = function (app) {
 					}
 				request.client.api.router = {regex: router_regex}
 				next ();
-				})
+				});
 			if (null) next ();
 			}
 		else response.error ("host:not-found");
@@ -415,6 +520,7 @@ express.client.param = function (app) {
 		next ();
 		}
 	}
+*/
 
 /**
  * xxx
