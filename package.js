@@ -115,11 +115,14 @@ express.application = function (app) {
 						request.app.server.config = app ["configuration.json"][request.app.server.driver][request.app.server.adapter];
 						request.app.client.config = app ["configuration.json"][request.app.client.driver][request.app.client.adapter];
 						request.app ["bin.json:config"] = app ["configuration.json"]["j:son"][request.app ["bin.json"]];
+						request.app.folder = [app.dir.package, (request.app.id || request.url.base.name)].join (Function.path.separator ());
 						if (request.app ["child:process"]) {
-							request.app.dir = {package: [app.dir.package, (request.app.id || request.url.base.name), request.url.domain.sub].join (Function.path.separator ())}
+							request.app.directory = [request.app.folder, request.url.domain.sub].join (Function.path.separator ());
+							// request.app.dir = {package: [app.dir.package, (request.app.id || request.url.base.name), request.url.domain.sub].join (Function.path.separator ())}
 							}
 						else {
-							request.app.dir = {package: [app.dir.package, (request.app.id || request.url.base.name)].join (Function.path.separator ())}
+							request.app.directory = request.app.folder;
+							// request.app.dir = {package: [app.dir.package, (request.app.id || request.url.base.name)].join (Function.path.separator ())}
 							}
 						break;
 						}
@@ -129,9 +132,9 @@ express.application = function (app) {
 		if (request.app) {
 			if (request.app.server.driver === "file:system") {
 				var config = request.app.server.config;
-				var directory;
-				if (request.app ["child:process"]) directory = [app.dir.package, (config.directory || (request.app.id || request.url.base.name)), request.url.domain.sub, "db"].join (Function.path.separator ());
-				else directory = [app.dir.package, (config.directory || (request.app.id || request.url.base.name)), "db"].join (Function.path.separator ());
+				var directory = [app.dir.package, (config.directory || (request.app.id || request.url.base.name)), "db"].join (Function.path.separator ());
+				// if (request.app ["child:process"]) directory = [app.dir.package, (config.directory || (request.app.id || request.url.base.name)), request.url.domain.sub, "db"].join (Function.path.separator ());
+				// else directory = [app.dir.package, (config.directory || (request.app.id || request.url.base.name)), "db"].join (Function.path.separator ());
 				request.api = new JSON.file ({directory});
 				request.api.db.table = config.db.collection;
 				}
@@ -191,7 +194,7 @@ express.request.io = class {
 		this.cross = {origin: {id: "", ip: "", ... this.url.cross.origin}}
 		this.date = new Date.time ();
 		this.date.timezone ("UTC");
-		this.router = {link: {data: []}}
+		this.router = {url: {}, link: {}, "link:slot": {}, "link:attribute": {}}
 		this.db = {}
 		}
 	query (key) {
@@ -274,7 +277,7 @@ express.response.io = class {
 		if (file.startsWith ("/")) file = file.substr (1);
 		option = option || {}
 		var root;
-		if (option.root === "node:package") root = this.express.request.io.app.dir.package;
+		if (option.root === "app:directory") root = this.express.request.io.app.directory;
 		else if (option.root === "package") root = this.express.app.dir.package;
 		else if (["public", "public_html"].includes (option.root)) root = this.express.app.dir.public;
 		else root = this.express.app.dir.public;
@@ -287,6 +290,7 @@ express.response.io = class {
 		}
 	error (error) {
 		if (error === "cross-origin") this.status ("error:forbidden").send ("Error (403) Forbidden : Cross Origin");
+		else if (error === "not-found") this.status ("error:not-found").send ("Error (404) Not Found");
 		else if (error === "app:not-found") this.status ("error:not-found").send ("Error (404) Not Found : App");
 		else if (error === "host:not-found") this.status ("error:not-found").send ("Error (404) Not Found : Host");
 		else if (error === "router:not-found") this.status ("error:not-found").send ("Error (404) Not Found : Router");
@@ -314,6 +318,7 @@ express.response.io = class {
 		else for (var i in key) this.parameter [i] = key [i];
 		return this;
 		}
+	/*
 	manifest (data) {
 		this.json (Function.manifest (data));
 		return this;
@@ -321,6 +326,7 @@ express.response.io = class {
 	robot (data) {
 		return this.text (Function.robot (data));
 		}
+	*/
 	}
 
 /**
@@ -387,7 +393,7 @@ express.cross.origin.api = {engine: require ("cors")}
 express.cross.origin.access = function (app) {
 	return function (request, response, next) {
 		request ["rest-api"] = (request.header ["x-rest-api"] === "self");
-		if (request.url.host.address === app ["client.json"]["rest-api"]) request.rest_api = true;
+		if (request.url.host.address === get_config (app, "rest-api")) request.rest_api = true;
 		if (request ["cross-origin"]) {
 			if (request.cross.origin.ip = request.header ["x-cross-origin-ip"]) {
 				var cross = {origin: app ["package.json"].cross.origin}
@@ -427,11 +433,33 @@ express.db = function (app) {
 			length ++;
 			if (length === Object.length (db)) next ();
 			}
+		if (db.config = request.api.db.collection ("config").select ({limit: "default"})) {
+			db.config.then (function (db) {
+				if (request.config = {}) for (var i in (request.db.config = db.data)) request.config [request.db.config [i].key] = request.db.config [i];
+				count ();
+				});
+			db.config.catch (function (error) {
+				count ();
+				});
+			}
 		if (db.router = request.api.db.collection ("router").select ({limit: "large"})) {
 			db.router.then (function (db) {
-				request.db.router = db.data;
+				// if (request.router = {}) request.db.router = db.data;
 				// app.route = {}
 				// for (var i in request.db.router) if (request.db.router [i].key) app.route [request.db.router [i].key] = request.db.router [i]
+				// request.router.link
+				request.db.router = db.data.map (function (data) {
+					data.meta = lib.json.decode (data.meta, {});
+					data.child = [];
+					return data;
+					});
+				for (var i in request.db.router) {
+					if (request.db.router [i].type === "link") request.router.link [request.db.router [i].key] = request.db.router [i];
+					else if (request.db.router [i].type === "link:slot") request.router ["link:slot"] [request.db.router [i].key] = request.db.router [i];
+					else if (request.db.router [i].type === "link:attribute") request.router ["link:attribute"] [request.db.router [i].key] = request.db.router [i];
+					else request.router.url [request.db.router [i].key] = request.db.router [i];
+					}
+				Function.help.db.child.recursive (request.db.router, request.db.router);
 				count ();
 				});
 			db.router.catch (function (error) {
@@ -454,6 +482,9 @@ express.db = function (app) {
 					if (request.db.taxonomy [i].type === "tag") request.db.tag.push (request.db.taxonomy [i]);
 					if (request.db.taxonomy [i].type === "category") request.db.category.push (request.db.taxonomy [i]);
 					}
+				Function.help.db.child.recursive (request.db.sitemap, request.db.taxonomy, response);
+				Function.help.db.child.recursive (request.db.tag, request.db.taxonomy, response);
+				Function.help.db.child.recursive (request.db.category, request.db.taxonomy, response);
 				count ();
 				})
 			db.taxonomy.catch (function (error) {
@@ -478,7 +509,7 @@ express.var = function (app) {
 	return function (request, response, next) {
 		response.param ({
 			"title": "UnTitled",
-			"head:rest-api": URL.format (app ["config.json"]["rest-api"], {protocol: request.url.protocol}),
+			"head:rest-api": URL.format (get_config (app, "rest-api"), {protocol: request.url.protocol}),
 			"head:language": "en",
 			"head:author": "Newbie Citizen",
 			"head:description": "Just another Web-Site/App Platform",
@@ -493,108 +524,6 @@ express.var = function (app) {
 	}
 
 express.var ["snippet:preview"] = ["max-snippet:-1", "max-image-preview:large", "max-video-preview:-1"];
-
-/*
-express.client = function (app) {
-	return function (request, response, next) {
-		var client;
-		if (request ["cross-origin"]) client = request.cross.origin.base.name;
-		else client = request.url.base.name;
-		if (null) for (var i in app ["config.json"]["*"]) {
-			var host = app ["config.json"]["*"][i];
-			var identifier = host.identifier;
-			if (Array.isArray (identifier)) for (var x in identifier) {
-				var name = identifier [x];
-				if (Function.help.host.check (client, name)) {
-					if (request.client = {identifier: client, ... host}) {
-						request.client.api.url = {path: express.path.data}
-						break;
-						}
-					}
-				}
-			}
-		for (var i in app ["client.json"].host) {
-			var host = app ["client.json"].host [i];
-			var identifier = host.identifier;
-			if (Array.isArray (identifier)) for (var x in identifier) {
-				var name = identifier [x];
-				if (Function.help.host.check (client, name)) {
-					if (request.client = {identifier: client, ... host}) {
-						request.client.api.url = {path: express.path.data}
-						break;
-						}
-					}
-				}
-			else if (Function.help.host.check (client, identifier)) {
-				if (request.client = {identifier: client, ... host}) {
-					request.client.api.url = {path: express.path.data}
-					break;
-					}
-				}
-			}
-		if (null) for (var i in app ["client.json"].host) {
-			if (Function.help.host.check (client, i)) {
-				if (request.client = {identifier: client, ... app ["client.json"].host [i]}) {
-					request.client.api.url = {path: express.path.data}
-					break;
-					}
-				}
-			}
-		if (request.client) {
-			if (request.client.api.gateway.driver === "file:system") {
-				var config = request.client.api.config [request.client.api.gateway.adapter || request.client.api.gateway.driver];
-				var directory = [app.dir.client, (config.directory || request.url.base.name), "db"].join (Function.path.separator ());
-				request.api = new JSON.file ({directory});
-				request.api.db.table = config.db.collection;
-				}
-			if (request.client.api.gateway.driver === "firebase") {
-				var config = request.client.api.config [request.client.api.gateway.adapter || request.client.api.gateway.driver];
-				request.api = new Function.api.firebase ({... config});
-				request.api.db.table = config.db.collection;
-				}
-			if (request.client.api.gateway.driver === "appwrite") {
-				var config = request.client.api.config [request.client.api.gateway.adapter || request.client.api.gateway.driver];
-				request.api = new Function.api.appwrite ({url: config.url, socket: config.socket, project: config.project, db: config.db.id});
-				request.api.db.table = config.db.collection;
-				}
-			if (request.client.api ["j:son"]) {
-				var config = request.client.api.config ["j:son"];
-				request.json = new JSON.bin ({url: config.url});
-				request.json.db.table = config.db.collection;
-				}
-			request.api.db.collection ("config").select ().emit (function (db) {
-				var router_regex = {}
-				for (var i in db.data) {
-					if (db.data [i].key.startsWith ("router:")) router_regex [db.data [i].key.substr ("router:".length)] = db.data [i].value;
-					if (db.data [i].key.startsWith ("router-link:")) router_regex [db.data [i].key.substr ("router-link:".length)] = db.data [i].value;
-					}
-				request.client.api.router = {regex: router_regex}
-				next ();
-				});
-			if (null) next ();
-			}
-		else response.error ("host:not-found");
-		}
-	}
-
-express.client.param = function (app) {
-	return function (request, response, next) {
-		response.param ({
-			"title": "UnTitled",
-			"head:rest-api": request.url.protocol + "://" + app ["client.json"]["rest-api"],
-			"head:language": "en",
-			"head:author": "Newbie Citizen",
-			"head:description": "Just another Web-Site/App",
-			"head:generator": "Newbizen Studio",
-			"head:keyword": "",
-			"head:robot": ["index", "follow", "max-image-preview:large", "max-snippet:-1", "max-video-preview:-1"].join (),
-			"head:canonical": "",
-			"head:manifest": express.path.data ["manifest.json"],
-			});
-		next ();
-		}
-	}
-*/
 
 /**
  * xxx
@@ -639,3 +568,8 @@ module.exports = exports = express;
  *
  * xxx://xxx.xxx.xxx/xxx
  */
+
+function get_config (app, key) {
+	if (app ["config.json"].development) return app ["config.json"][[key, "io"].join (":")];
+	else return app ["config.json"][key];
+	}
