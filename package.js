@@ -116,6 +116,11 @@ express.application = function (app) {
 						request.app.client.config = app ["configuration.json"][request.app.client.driver][request.app.client.adapter];
 						request.app ["bin.json:config"] = app ["configuration.json"]["j:son"][request.app ["bin.json"]];
 						request.app.folder = [app.dir.package, (request.app.id || request.url.base.name)].join (Function.path.separator ());
+						request.app.dir = {}
+						if (true) request.app.dir.db = [app.dir.package, "0.0.0.0", "db"].join (Function.path.separator ())
+						else request.app.dir.db = [request.app.folder, "db"].join (Function.path.separator ())
+						request.app.file = {}
+						request.app.file.system = new JSON.file ({directory: request.app.dir.db});
 						if (request.app ["child:process"]) {
 							request.app.directory = [request.app.folder, request.url.domain.sub].join (Function.path.separator ());
 							// request.app.dir = {package: [app.dir.package, (request.app.id || request.url.base.name), request.url.domain.sub].join (Function.path.separator ())}
@@ -130,12 +135,19 @@ express.application = function (app) {
 				}
 			}
 		if (request.app) {
+			/*
 			if (request.app.server.driver === "file:system") {
 				var config = request.app.server.config;
 				var directory = [app.dir.package, (config.directory || (request.app.id || request.url.base.name)), "db"].join (Function.path.separator ());
 				// if (request.app ["child:process"]) directory = [app.dir.package, (config.directory || (request.app.id || request.url.base.name)), request.url.domain.sub, "db"].join (Function.path.separator ());
 				// else directory = [app.dir.package, (config.directory || (request.app.id || request.url.base.name)), "db"].join (Function.path.separator ());
-				request.api = new JSON.file ({directory});
+				request.api = new JSON.file ({directory: request.app.dir.db});
+				request.api.db.table = config.db.collection;
+				}
+			*/
+			if (request.app.server.driver === "file:system") {
+				var config = request.app.server.config;
+				request.api = new JSON.file ({directory: request.app.dir.db});
 				request.api.db.table = config.db.collection;
 				}
 			if (request.app.server.driver === "firebase") {
@@ -153,7 +165,8 @@ express.application = function (app) {
 				request.json = new JSON.bin ({url: config.url});
 				request.json.db.table = config.db.collection;
 				}
-			next ();
+			if (request.api) next ();
+			else response.error ("api:not-found");
 			}
 		else response.error ("host:not-found");
 		}
@@ -194,23 +207,36 @@ express.request.io = class {
 		this.cross = {origin: {id: "", ip: "", ... this.url.cross.origin}}
 		this.date = new Date.time ();
 		this.date.timezone ("UTC");
-		this.router = {url: {}, link: {}, "link:slot": {}, "link:attribute": {}}
-		this.db = {}
+		this.$__config = {}
+		this.$__router = {}
+		this.$__tag = {}
+		this.$__category = {}
+		this.db = {
+			config: [],
+			account: [],
+			router: [],
+			content: [],
+			taxonomy: [], tag: [], category: [], sitemap: [],
+			ip_address: [],
+			visitor: [],
+			}
+		// this.router = {url: {}, link: {}, "link:slot": {}, "link:attribute": {}}
 		}
 	query (key) {
 		if (key) return this.express.request.query [key];
 		else return this.url.query;
 		}
 	param (key) {
-		if (key) return this.express.request.params [key];
+		if (key === "*") return this.express.request.params ["0"];
+		else if (key) return this.express.request.params [key];
 		else return this.express.request.params;
 		}
 	}
 
-express.request ["cgi-bin:db-collection"] = function (request) {
+express.request ["cgi-bin:db collection"] = function (request) {
 	var collection = request.app.server.config.db.collection;
 	var data = [];
-	for (var i in collection) data.push (express.path.data ["cgi-bin:db-collection"].to_param ({collection: i}));
+	for (var i in collection) data.push (express.path ("cgi-bin:db collection").to_param ({collection: i}));
 	return data.includes (request.path);
 	}
 
@@ -295,6 +321,7 @@ express.response.io = class {
 		else if (error === "host:not-found") this.status ("error:not-found").send ("Error (404) Not Found : Host");
 		else if (error === "router:not-found") this.status ("error:not-found").send ("Error (404) Not Found : Router");
 		else if (error === "url:not-found") this.status ("error:not-found").send ("Error (404) Not Found : URL");
+		else if (error === "api:not-found") this.status ("error:internal").send ("Error (500) Internal Server Error : API");
 		else this.status ("error:internal").send (error || "Error (500) Internal Server Error");
 		return this;
 		}
@@ -318,15 +345,6 @@ express.response.io = class {
 		else for (var i in key) this.parameter [i] = key [i];
 		return this;
 		}
-	/*
-	manifest (data) {
-		this.json (Function.manifest (data));
-		return this;
-		}
-	robot (data) {
-		return this.text (Function.robot (data));
-		}
-	*/
 	}
 
 /**
@@ -352,7 +370,8 @@ express.path.data = {
 	"cgi-bin": "/cgi-bin",
 	"cgi-bin:info": "/cgi-bin/info",
 	"cgi-bin:setup": "/cgi-bin/setup",
-	"cgi-bin:db-collection": "/cgi-bin/db/:collection",
+	"cgi-bin:db install": "/cgi-bin/db/install",
+	"cgi-bin:db collection": "/cgi-bin/db/collection/:collection",
 	"cgi-bin:db.json": "/cgi-bin/db.json",
 	"cgi-bin:file": "/cgi-bin/file/:file",
 	"cgi-bin:security challenge": "/cgi-bin/security/challenge",
@@ -394,6 +413,7 @@ express.cross.origin.access = function (app) {
 	return function (request, response, next) {
 		request ["rest-api"] = (request.header ["x-rest-api"] === "self");
 		if (request.url.host.address === get_config (app, "rest-api")) request.rest_api = true;
+		if (request.url.domain.sub === app ["config.json"]["web:rest-api"]) request.rest_api = true;
 		if (request ["cross-origin"]) {
 			if (request.cross.origin.ip = request.header ["x-cross-origin-ip"]) {
 				var cross = {origin: app ["package.json"].cross.origin}
@@ -417,7 +437,7 @@ express.cross.origin.header = function (app) {
 	}
 
 /**
- * client
+ * db
  *
  * title
  * description
@@ -431,77 +451,94 @@ express.db = function (app) {
 		var db = {}, length = 0;
 		var count = function () {
 			length ++;
-			if (length === Object.length (db)) next ();
+			if (length === Object.length (db)) {
+				next ();
+				}
 			}
 		if (db.config = request.api.db.collection ("config").select ({limit: "default"})) {
 			db.config.then (function (db) {
-				if (request.config = {}) for (var i in (request.db.config = db.data)) request.config [request.db.config [i].key] = request.db.config [i];
+				for (var i in db.data) {
+					request.db.config.push (db.data [i]);
+					request.$__config [db.data [i].key] = db.data [i];
+					}
 				count ();
 				});
 			db.config.catch (function (error) {
+				console.log (error);
 				count ();
 				});
 			}
 		if (db.router = request.api.db.collection ("router").select ({limit: "large"})) {
 			db.router.then (function (db) {
-				// if (request.router = {}) request.db.router = db.data;
-				// app.route = {}
-				// for (var i in request.db.router) if (request.db.router [i].key) app.route [request.db.router [i].key] = request.db.router [i]
-				// request.router.link
-				request.db.router = db.data.map (function (data) {
+				var router = db.data.map (function (data) {
 					data.meta = lib.json.decode (data.meta, {});
+					data.parent_id = [];
 					data.child = [];
 					return data;
 					});
-				for (var i in request.db.router) {
-					if (request.db.router [i].type === "link") request.router.link [request.db.router [i].key] = request.db.router [i];
-					else if (request.db.router [i].type === "link:slot") request.router ["link:slot"] [request.db.router [i].key] = request.db.router [i];
-					else if (request.db.router [i].type === "link:attribute") request.router ["link:attribute"] [request.db.router [i].key] = request.db.router [i];
-					else request.router.url [request.db.router [i].key] = request.db.router [i];
+				for (var i in router) {
+					request.db.router.push (router [i]);
+					if (router [i].type) {}
+					else request.$__router [router [i].key] = router [i];
 					}
-				Function.help.db.child.recursive (request.db.router, request.db.router);
 				count ();
 				});
 			db.router.catch (function (error) {
+				console.log (error);
 				count ();
 				});
 			}
 		if (db.taxonomy = request.api.db.collection ("taxonomy").select ({limit: "large"})) {
 			db.taxonomy.then (function (db) {
-				request.db.taxonomy = db.data;
-				request.db.sitemap = [];
-				request.db.tag = [];
-				request.db.category = [];
-				request.db.taxonomy = request.db.taxonomy.map (function (data) {
+				var taxonomy = db.data.map (function (data) {
 					data.meta = lib.json.decode (data.meta, {});
+					data.parent_id = [];
 					data.child = [];
 					return data;
-					})
-				for (var i in request.db.taxonomy) {
-					if (request.db.taxonomy [i].type === "sitemap") request.db.sitemap.push (request.db.taxonomy [i]);
-					if (request.db.taxonomy [i].type === "tag") request.db.tag.push (request.db.taxonomy [i]);
-					if (request.db.taxonomy [i].type === "category") request.db.category.push (request.db.taxonomy [i]);
+					});
+				for (var i in taxonomy) {
+					request.db.taxonomy.push (taxonomy [i]);
+					if (taxonomy [i].type === "tag") request.db.tag.push (request.$__tag [taxonomy [i].id] = taxonomy [i]);
+					if (taxonomy [i].type === "category") request.db.category.push (request.$__category [taxonomy [i].id] = taxonomy [i]);
+					if (taxonomy [i].type === "sitemap") request.db.sitemap.push (taxonomy [i]);
 					}
-				Function.help.db.child.recursive (request.db.sitemap, request.db.taxonomy, response);
-				Function.help.db.child.recursive (request.db.tag, request.db.taxonomy, response);
-				Function.help.db.child.recursive (request.db.category, request.db.taxonomy, response);
 				count ();
-				})
+				});
 			db.taxonomy.catch (function (error) {
+				console.log (error);
 				count ();
 				});
 			}
-		/*
-		request.api.db.collection ("config").select ().emit (function (db) {
-			var router = {}
-			for (var i in db.data) {
-				if (db.data [i].key.startsWith ("router:")) router [db.data [i].key.substr ("router:".length)] = db.data [i].value;
-				if (db.data [i].key.startsWith ("router-link:")) router [db.data [i].key.substr ("router-link:".length)] = db.data [i].value;
+		}
+	}
+
+express.db.test = function (app) {
+	return function (request, response, next) {
+		Function.help.db.child.recursive (request.db.router, request.db.router);
+		Function.help.db.child.recursive (request.db.tag, request.db.taxonomy);
+		Function.help.db.parent_id.recursive (request.db.category, request.db.taxonomy);
+		Function.help.db.child.recursive (request.db.category, request.db.taxonomy);
+		Function.help.db.child.recursive (request.db.sitemap, request.db.taxonomy);
+		request.db.tag = request.db.tag.map (function (data) {
+			if (data.url) {}
+			else {
+				data.url = request.$__router ["tag"].path.to_param ({key: data.key});
 				}
-			request.app.router = {regex: router}
-			next ();
+			return data;
 			});
-		*/
+		request.db.category = request.db.category.map (function (data) {
+			if (data.url) {}
+			else {
+				var path = [data.key];
+				for (var i in data.parent_id) path.push (request.$__category [data.parent_id [i]].key);
+				path = path.reverse ().join ("/");
+				data.url = request.$__router ["category"].path.to_param (path);
+				}
+			return data;
+			});
+		for (var i in request.db.tag) request.$__tag [request.db.tag [i].id] = request.db.tag [i];
+		for (var i in request.db.category) request.$__category [request.db.category [i].id] = request.db.category [i];
+		next ();
 		}
 	}
 
@@ -570,6 +607,6 @@ module.exports = exports = express;
  */
 
 function get_config (app, key) {
-	if (app ["config.json"].development) return app ["config.json"][[key, "io"].join (":")];
-	else return app ["config.json"][key];
+	if (app ["config.json"].development) return app ["config.json"][[key, "local"].join (":")];
+	else return app ["config.json"][[key, "io"].join (":")];
 	}
