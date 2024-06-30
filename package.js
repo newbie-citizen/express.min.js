@@ -432,8 +432,8 @@ express.cross.origin.api = {engine: require ("cors")}
 express.cross.origin.access = function (app) {
 	return function (request, response, next) {
 		request ["rest-api"] = (request.header ["x-rest-api"] === "self");
-		if (request.url.host.address === get_config (app, "rest-api")) request.rest_api = true;
-		if (request.url.domain.sub === app ["config.json"]["web:rest-api"]) request.rest_api = true;
+		// if (request.url.host.address === get_config (app, "rest-api")) request.rest_api = true;
+		if (request.url.domain.sub === "rest-api") request.rest_api = true;
 		if (request ["cross-origin"]) {
 			if (request.cross.origin.ip = request.header ["x-cross-origin-ip"]) {
 				var cross = {origin: app ["package.json"].cross.origin}
@@ -557,6 +557,7 @@ express.db.initialize = function (app) {
 
 express.db.extra = function (app) {
 	return function (request, response, next) {
+		request.date.timezone (request.$__config ["timezone"].value);
 		Function.help.db.child.recursive (request.$__db.router, request.$__db.router);
 		Function.help.db.child.recursive (request.$__db.tag, request.$__db.taxonomy);
 		Function.help.db.parent_id.recursive (request.$__db.category, request.$__db.taxonomy);
