@@ -162,7 +162,7 @@ express.application = function (app) {
 			if (Array.isArray (identifier)) for (var x in identifier) {
 				var name = identifier [x];
 				if (Function.help.host.check (base, name)) {
-					if (request.app = {domain: base, api: {}, ... the}) {
+					if (request.app = {domain: base, api: {path: express.path.data}, ... the}) {
 						request.app.folder = [app.dir.src, (request.app.id || request.url.base.name)].join (Function.path.separator ());
 						request.app.dir = {}
 						if (true) request.app.dir.db = [app.dir.src, "0.0.0.0", "db"].join (Function.path.separator ())
@@ -415,6 +415,58 @@ express.path.data = {
 	"open-search.xml": "/opensearch.xml",
 	"open-search.xml:description": "/osd.xml",
 	}
+
+express.path.data ["account"] = "/account";
+express.path.data ["account:profile"] = "/account/profile.html";
+express.path.data ["account:check_up"] = "/account/check_up.html";
+express.path.data ["account:sign_up"] = "/account/sign_up.html";
+express.path.data ["account:sign_in"] = "/account/sign_in.html";
+express.path.data ["account:sign_out"] = "/account/sign_out.html";
+express.path.data ["cgi-bin account"] = "/cgi-bin/account";
+express.path.data ["cgi-bin account select"] = "/cgi-bin/account/select";
+express.path.data ["cgi-bin account insert"] = "/cgi-bin/account/insert";
+express.path.data ["cgi-bin account update"] = "/cgi-bin/account/update";
+express.path.data ["cgi-bin account delete"] = "/cgi-bin/account/delete";
+
+express.path.data ["cgi-bin content"] = "/cgi-bin/content";
+express.path.data ["cgi-bin content select"] = "/cgi-bin/content/select";
+express.path.data ["cgi-bin content insert"] = "/cgi-bin/content/insert";
+express.path.data ["cgi-bin content update"] = "/cgi-bin/content/update";
+express.path.data ["cgi-bin content delete"] = "/cgi-bin/content/delete";
+var content_type = ["article", "image", "photo", "audio", "sound", "music", "video", "game", "people"];
+for (var i in content_type) {
+	express.path.data ["cgi-bin content:" + content_type [i]] = "/cgi-bin/content/" + content_type [i];
+	express.path.data ["cgi-bin content:" + content_type [i] + " select"] = "/cgi-bin/content/" + content_type [i] + "/select";
+	express.path.data ["cgi-bin content:" + content_type [i] + " insert"] = "/cgi-bin/content/" + content_type [i] + "/insert";
+	express.path.data ["cgi-bin content:" + content_type [i] + " update"] = "/cgi-bin/content/" + content_type [i] + "/update";
+	express.path.data ["cgi-bin content:" + content_type [i] + " delete"] = "/cgi-bin/content/" + content_type [i] + "/delete";
+	}
+
+express.path.data ["cgi-bin page"] = "/cgi-bin/page";
+express.path.data ["cgi-bin page select"] = "/cgi-bin/page/select";
+express.path.data ["cgi-bin page insert"] = "/cgi-bin/page/insert";
+express.path.data ["cgi-bin page update"] = "/cgi-bin/page/update";
+express.path.data ["cgi-bin page delete"] = "/cgi-bin/page/delete";
+var content_page_type = ["event", "promo"];
+for (var i in content_page_type) {
+	express.path.data ["cgi-bin content:" + content_page_type [i]] = "/cgi-bin/page/" + content_page_type [i];
+	express.path.data ["cgi-bin content:" + content_page_type [i] + " select"] = "/cgi-bin/page/" + content_page_type [i] + "/select";
+	express.path.data ["cgi-bin content:" + content_page_type [i] + " insert"] = "/cgi-bin/page/" + content_page_type [i] + "/insert";
+	express.path.data ["cgi-bin content:" + content_page_type [i] + " update"] = "/cgi-bin/page/" + content_page_type [i] + "/update";
+	express.path.data ["cgi-bin content:" + content_page_type [i] + " delete"] = "/cgi-bin/page/" + content_page_type [i] + "/delete";
+	}
+
+express.path.data ["cgi-bin tag"] = "/cgi-bin/tag";
+express.path.data ["cgi-bin tag select"] = "/cgi-bin/tag/select";
+express.path.data ["cgi-bin tag insert"] = "/cgi-bin/tag/insert";
+express.path.data ["cgi-bin tag update"] = "/cgi-bin/tag/update";
+express.path.data ["cgi-bin tag delete"] = "/cgi-bin/tag/delete";
+
+express.path.data ["cgi-bin category"] = "/cgi-bin/category";
+express.path.data ["cgi-bin category select"] = "/cgi-bin/category/select";
+express.path.data ["cgi-bin category insert"] = "/cgi-bin/category/insert";
+express.path.data ["cgi-bin category update"] = "/cgi-bin/category/update";
+express.path.data ["cgi-bin category delete"] = "/cgi-bin/category/delete";
 
 /**
  * cross origin
