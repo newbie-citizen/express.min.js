@@ -429,6 +429,7 @@ express.path.data ["cgi-bin account update"] = "/cgi-bin/account/update";
 express.path.data ["cgi-bin account delete"] = "/cgi-bin/account/delete";
 
 express.path.data ["cgi-bin content"] = "/cgi-bin/content";
+express.path.data ["cgi-bin content action"] = "/cgi-bin/content/:action";
 express.path.data ["cgi-bin content select"] = "/cgi-bin/content/select";
 express.path.data ["cgi-bin content insert"] = "/cgi-bin/content/insert";
 express.path.data ["cgi-bin content update"] = "/cgi-bin/content/update";
@@ -436,6 +437,7 @@ express.path.data ["cgi-bin content delete"] = "/cgi-bin/content/delete";
 var content_type = ["article", "image", "photo", "audio", "sound", "music", "video", "game", "people"];
 for (var i in content_type) {
 	express.path.data ["cgi-bin content:" + content_type [i]] = "/cgi-bin/content/" + content_type [i];
+	express.path.data ["cgi-bin content:" + content_type [i] + " action"] = "/cgi-bin/content/" + content_type [i] + "/:action";
 	express.path.data ["cgi-bin content:" + content_type [i] + " select"] = "/cgi-bin/content/" + content_type [i] + "/select";
 	express.path.data ["cgi-bin content:" + content_type [i] + " insert"] = "/cgi-bin/content/" + content_type [i] + "/insert";
 	express.path.data ["cgi-bin content:" + content_type [i] + " update"] = "/cgi-bin/content/" + content_type [i] + "/update";
@@ -443,6 +445,7 @@ for (var i in content_type) {
 	}
 
 express.path.data ["cgi-bin page"] = "/cgi-bin/page";
+express.path.data ["cgi-bin page action"] = "/cgi-bin/page/:action";
 express.path.data ["cgi-bin page select"] = "/cgi-bin/page/select";
 express.path.data ["cgi-bin page insert"] = "/cgi-bin/page/insert";
 express.path.data ["cgi-bin page update"] = "/cgi-bin/page/update";
@@ -450,6 +453,7 @@ express.path.data ["cgi-bin page delete"] = "/cgi-bin/page/delete";
 var content_page_type = ["event", "promo"];
 for (var i in content_page_type) {
 	express.path.data ["cgi-bin content:" + content_page_type [i]] = "/cgi-bin/page/" + content_page_type [i];
+	express.path.data ["cgi-bin content:" + content_page_type [i] + " action"] = "/cgi-bin/page/" + content_page_type [i] + "/:action";
 	express.path.data ["cgi-bin content:" + content_page_type [i] + " select"] = "/cgi-bin/page/" + content_page_type [i] + "/select";
 	express.path.data ["cgi-bin content:" + content_page_type [i] + " insert"] = "/cgi-bin/page/" + content_page_type [i] + "/insert";
 	express.path.data ["cgi-bin content:" + content_page_type [i] + " update"] = "/cgi-bin/page/" + content_page_type [i] + "/update";
